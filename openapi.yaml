@@ -1,0 +1,1214 @@
+openapi: "3.0.1"
+info:
+  description: |
+    audiocloud.io API v.1.0.0 is an API for distributed audio streaming and processing. Its purpose is to connect multiple hardware
+    and software components across many computers and deliver a sample-accurate mixed stream of audio. The API is designed for
+    real-time, immediate-mode and event-driven use.
+
+    It should be comparably easy to write a service on top of this API for batch processing or gating real-time use with a
+    scheduling component to many users.
+  title: "audiocloud.io"
+  version: "1.0.0"
+servers:
+  - url: https://api.audiocloud.io/api/v1
+paths:
+  /mixers:
+    get:
+      summary: List mixers
+      operationId: list_mixers
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/MixerWithStatus"
+    post:
+      summary: Create a mixer
+      operationId: create_mixer
+      requestBody:
+        description: Mixer specification
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Mixer"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MixerWithStatus"
+  /mixers/{mixer_id}:
+    parameters:
+      - name: mixer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get mixer by id
+      operationId: get_mixer_by_id
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MixerWithStatus"
+    delete:
+      summary: Stop and remove a mixer by id
+      operationId: delete_mixer
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MixerWithStatus"
+  /mixers/{mixer_id}/events:
+    parameters:
+      - name: mixer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get mixer event stream
+      operationId: stream_mixer_events
+      responses:
+        200:
+          description: Success
+          content:
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /mixers/{mixer_id}/play:
+    parameters:
+      - name: mixer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Put the mixer into play mode
+      operationId: play_mixer
+      requestBody:
+        required: true
+        description: Play specification
+        content:
+          application/json:
+            example:
+              play_region:
+                start: 0
+                length: 384000
+              format: wav
+              delivery:
+                type: stream
+                stream_id: HzZ9i24qjlJXubq5MuRXo
+              sample_rate: 192000
+              bus_id: output
+            schema:
+              $ref: "#/components/schemas/Play"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MixerStatus"
+  /mixers/{mixer_id}/stop:
+    parameters:
+      - name: mixer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Stop the mixer
+      operationId: stop_mixer
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MixerStatus"
+  /mixers/{mixer_id}/play_region:
+    parameters:
+      - name: mixer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Set the timeline play region in the mixer
+      operationId: set_play_region
+      requestBody:
+        description: New play region
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayRegion"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayRegion"
+  /mixers/{mixer_id}/position:
+    parameters:
+      - name: mixer_id
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Set the timeline position in the mixer
+      operationId: set_position
+      requestBody:
+        description: New position
+        content:
+          application/json:
+            schema:
+              type: integer
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: integer
+  /mixers/{mixer_id}/instances:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Set instance IDs controlled by Mixer
+      operationId: set_instances
+      requestBody:
+        description: Instance IDs controlled by the Mixer
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: string
+                enum:
+                  - Updated
+                  - No Change
+  /mixers/{mixer_id}/tracks:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Add a track to the mixer
+      operationId: add_track
+      requestBody:
+        description: Track specification
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackWithId"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackWithId"
+  /mixers/{mixer_id}/tracks/{track_id}:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: track_id
+        description: Track ID
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Delete a track
+      operationId: delete_track
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/clip_tracks/{track_id}/clips:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: track_id
+        description: Track ID
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Add a clip to a clip track
+      operationId: add_clip_to_track
+      requestBody:
+        description: Clip to add
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClipWithId"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClipWithId"
+  /mixers/{mixer_id}/clip_tracks/{track_id}/clips/{clip_id}:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: track_id
+        description: Track ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: clip_id
+        description: Clip ID
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Delete a clip from a clip track
+      operationId: delete_clip_from_track
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/clip_tracks/{track_id}/clips/{clip_id}/position:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: track_id
+        description: Track ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: clip_id
+        description: Clip ID
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a clip position in a clip track
+      operationId: update_clip_position_on_track
+      requestBody:
+        description: New position
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Region"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/clip_tracks/{track_id}/clips/{clip_id}/source:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: track_id
+        description: Track ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: clip_id
+        description: Clip ID
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a clip source in a clip track
+      operationId: update_clip_source_on_track
+      requestBody:
+        description: New source
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Source"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/source_tracks/{track_id}/source:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: track_id
+        description: Track ID
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Update a source on a track
+      operationId: update_source_track_source
+      requestBody:
+        description: Source
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Source"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/links:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Create a link between a track and a bus
+      operationId: create_link
+      requestBody:
+        description: Link specification
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkWithId"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkWithId"
+  /mixers/{mixer_id}/links/{link_id}:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: link_id
+        description: Link ID
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Delete a link from the mixer
+      operationId: delete_link
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/links/{link_id}/gain:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: link_id
+        description: Link ID
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Set per-channel gain on a link
+      operationId: set_link_gain
+      requestBody:
+        description: Link volume
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: number
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identified"
+  /mixers/{mixer_id}/push_sources/{source_id}/{start}/{length}:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: source_id
+        description: Source ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: start
+        description: Region start, defaults to zero
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: length
+        description: Region length, defaults to -1 (maximum length)
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      summary: Push a region of audio data into a push source
+      operationId: accept_push_source_region
+      requestBody:
+        description: Audio data
+        content:
+          audio/wav: {}
+          audio/flac: {}
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Region"
+  /mixers/{mixer_id}/streams/{stream_id}/{start}/{length}:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: stream_id
+        description: Stream ID
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: start
+        description: Region start, defaults to zero
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: length
+        description: Region length, defaults to -1 (maximum length)
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Stream a chunk of audio generated by the play command with stream delivery
+      operationId: stream_play_result
+      responses:
+        200:
+          description: Success
+          content:
+            audio/wav: {}
+            audio/flac: {}
+  /mixers/{mixer_id}/settings:
+    parameters:
+      - name: mixer_id
+        description: Mixer ID
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get the settings of all instances and bus inserts
+      description: This is useful to make a preset
+      operationId: get_all_settings
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    post:
+      summary: Update all or part of the settings of any instances and bus inserts
+      operationId: update_settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Settings"
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                description: Number of settings changed
+                type: number
+  /mixer/{mixer_id}/models:
+    get:
+      summary: Get all models supported
+components:
+  schemas:
+    Identified:
+      example:
+        id: "Xeh4lcn9xzJWC4t3JfLjo"
+      description: An object with an ID
+      type: object
+      properties:
+        id:
+          type: string
+      required: [id]
+    MixerStatus:
+      description: Mixer play status. preparing_to_play is the transition from stopped to playing
+      type: string
+      enum:
+        - playing
+        - stopped
+        - preparing_to_play
+    MixerWithStatus:
+      allOf:
+        - type: object
+          properties:
+            status:
+              $ref: "#/components/schemas/MixerStatus"
+            position:
+              type: integer
+          required:
+            - status
+            - position
+        - $ref: "#/components/schemas/Mixer"
+    Mixer:
+      description: The root resource of the audiocloud.io API, each mixer is share-nothing isolated from the others
+      type: object
+      properties:
+        sample_rate:
+          description: The default running sample rate of the mixer, in samples per second
+          type: integer
+        tracks:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Track"
+        links:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Link"
+        play_region:
+          $ref: "#/components/schemas/PlayRegion"
+        authentications:
+          description: Authentication settings for operations on this mixer
+          type: array
+          items:
+            $ref: "#/components/schemas/AuthRule"
+        instances:
+          description: Instance IDs associated with the operations on this mixer, for example, external hardware
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - sample_rate
+        - tracks
+        - links
+        - play_region
+        - authentications
+        - instances
+    Track:
+      description: A source of audio for the Mixer to mix
+      oneOf:
+        - $ref: "#/components/schemas/SourceTrack"
+        - $ref: "#/components/schemas/ClipTrack"
+        - $ref: "#/components/schemas/RemoteMixerTrack"
+        - $ref: "#/components/schemas/BusTrack"
+      discriminator:
+        propertyName: type
+        mapping:
+          source: "#/components/schemas/SourceTrack"
+          clips: "#/components/schemas/ClipTrack"
+          remote: "#/components/schemas/RemoteMixerTrack"
+          bus: "#/components/schemas/BusTrack"
+    TrackWithId:
+      allOf:
+        - $ref: "#/components/schemas/Identified"
+        - $ref: "#/components/schemas/Track"
+    SourceTrack:
+      description: A track that generates audio by iterating a real-time source
+      example:
+        type: "source"
+        source:
+          type: "generator"
+          generator: "sine"
+          frequency: 1000
+          amplitude: 1.0
+      type: object
+      properties:
+        source:
+          $ref: "#/components/schemas/Source"
+      required: [source]
+    ClipTrack:
+      description: A track that generates audio by combining potentially overlapping timeline positioned clips
+      example:
+        type: clips
+        clips:
+          qcGprApFCv3qgpkCS1jHt:
+            start: 0
+            length: 68163
+            source:
+              type: local
+              local: "dir1/file1.wav"
+              format: wav
+          V6EXxHBRJCUTiZ7CHOgr0:
+            start: 75362
+            length: 85246
+            source:
+              type: local
+              local: "dir2/file2.wav"
+              format: wav
+      type: object
+      properties:
+        clips:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Clip"
+      required: [clips]
+    RemoteMixerTrack:
+      description: A track that generates audio by connecting to a mixer on another endpoint and streaming its output
+      type: object
+      properties:
+        sample_rate:
+          description: What sample rate should be used to pull audio out of the remote mixer
+          type: integer
+        endpoint:
+          description: Remote mixer API endpoint
+          type: string
+        mixer_id:
+          description: Remote mixer ID
+          type: string
+        authentication:
+          description: Authentication header to pass to the endpoint to be authorized
+          type: string
+        instances:
+          description: Remote instance IDs to represent as instances on this Mixer
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - endpoint
+        - mixer_id
+        - authentication
+        - instances
+    BusTrack:
+      description: A track that collects audio from other tracks and processes them via Inserts
+      type: object
+      properties:
+        inserts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Insert"
+    Clip:
+      description: A timeline positioned audio asset like a file or static URL
+      type: object
+      properties:
+        start:
+          type: integer
+        length:
+          type: integer
+        source:
+          $ref: "#/components/schemas/Source"
+      required:
+        - start
+        - length
+        - source
+    ClipWithId:
+      allOf:
+        - $ref: "#/components/schemas/Identified"
+        - $ref: "#/components/schemas/Clip"
+    Source:
+      description: A source of audio that can be played back
+      oneOf:
+        - $ref: "#/components/schemas/LocalSource"
+        - $ref: "#/components/schemas/ObjectSource"
+        - $ref: "#/components/schemas/PushSource"
+        - $ref: "#/components/schemas/InstanceSource"
+        - $ref: "#/components/schemas/SignalSource"
+      discriminator:
+        propertyName: type
+        mapping:
+          local: "#/components/schemas/LocalSource"
+          object: "#/components/schemas/ObjectSource"
+          push: "#/components/schemas/PushSource"
+          instance: "#/components/schemas/InstanceSource"
+          signal: "#/components/schemas/SignalSource"
+    LocalSource:
+      description: Generates audio from a local file (useful for debugging)
+      type: object
+      properties:
+        local:
+          type: string
+        format:
+          $ref: "#/components/schemas/InputFormat"
+      required:
+        - local
+        - format
+    ObjectSource:
+      example:
+        endpoint_or_id: "@sharedstorage"
+        bucket: "user1835"
+        object_id: "projects/untitled/track1.wav"
+      description: Generates audio from an S3 compatible object storage
+      type: object
+      properties:
+        endpoint_or_id:
+          description: S3 compatible endpoint URL or a `@` prefixed id for predefined storage
+          type: string
+        bucket:
+          description: S3 Bucket
+          type: string
+        object_id:
+          description: S3 Object ID (can be a path)
+          type: string
+        access_key:
+          description: S3 Access key, if needed
+          type: string
+        secret_key:
+          description: S3 Secret key, if needed
+          type: string
+        format:
+          $ref: "#/components/schemas/InputFormat"
+      required:
+        - endpoint_or_id
+        - bucket
+        - object_id
+        - format
+    PushSource:
+      description: An audio source whose backing store of audio is generated by some API client that pushes (uploads) chunks of audio in real time
+      type: object
+      properties:
+        source_id:
+          type: string
+        sample_rate:
+          type: integer
+        format:
+          $ref: "#/components/schemas/InputFormat"
+        reference_clock:
+          type: string
+          enum:
+            - stream
+            - timeline
+      required:
+        - source_key
+        - source_secret
+        - sample_rate
+        - format
+    InstanceSource:
+      description: An audio source that generates audio by connecting to an audio device instance and streams audio off of its input channels
+      type: object
+      properties:
+        instance_id:
+          type: string
+        sample_rate:
+          type: integer
+        channels:
+          type: array
+          items:
+            type: integer
+      required:
+        - instance_id
+        - sample_rate
+        - channels
+    SignalSource:
+      description: Generates audio with a signal generator function
+      example:
+        type: generator
+        generator: square
+        frequency: 500
+        amplitude: 0.75
+      type: object
+      properties:
+        generator:
+          type: string
+          enum:
+            - sine
+            - saw
+            - square
+        frequency:
+          type: number
+        amplitude:
+          type: number
+    InputFormat:
+      description: Format (muxer) of an input file, URL, push stream...
+      type: string
+      enum:
+        - wav
+        - flac
+    OutputFormat:
+      description: Format (muxer) of an output file, generated stream...
+      type: string
+      enum:
+        - wav
+        - flac
+    LinkChannel:
+      description: Channel mapping that describes which source track channel maps to which bus channel
+      properties:
+        source:
+          type: integer
+        bus:
+          type: integer
+        gain:
+          type: number
+      required:
+        - source
+        - bus
+        - gain
+    Insert:
+      description: A task that processes input audio and generates output audio
+      type: object
+      properties:
+        input_channels:
+          description: A list of bus channels that map to insert input channels
+          type: array
+          items:
+            type: integer
+        output_channels:
+          description: A list of bus channels that map from insert output channels
+          type: array
+          items:
+            type: integer
+        process:
+          $ref: "#/components/schemas/InsertProcess"
+      required:
+        - input_channels
+        - output_channels
+        - process
+    InsertProcess:
+      oneOf:
+        - $ref: "#/components/schemas/InstanceExchangeProcess"
+      discriminator:
+        propertyName: type
+        mapping:
+          instance_exchange: "#/components/schemas/InstanceExchangeProcess"
+    InstanceExchangeProcess:
+      type: object
+      properties:
+        instance_id:
+          description: Audio IO capable Instance through which to send the audio
+          type: string
+        send_channels:
+          description: List of insert channels that map to Instance Audio IO send capable channels
+          type: array
+          items:
+            type: integer
+        receive_channels:
+          description: List of insert channels that map to Instance Audio IO receive capable channels
+          type: array
+          items:
+            type: integer
+        sample_rate:
+          description: Sample rate in samples per second
+          type: integer
+      required:
+        - instance_id
+        - send_channels
+        - receive_channels
+        - sample_rate
+    Link:
+      description: Links a track's output to a bus input
+      example:
+        source_track: playback
+        bus: output
+        channels:
+          - source: 0
+            bus: 0
+            gain: 0.5
+          - source: 0
+            bus: 1
+            gain: 0.6
+      type: object
+      properties:
+        source_track:
+          description: Source track ID
+          type: string
+        bus:
+          description: Destination bus ID
+          type: string
+        channels:
+          description: Array of channels to be linked, source channels may repeat, bus destination channels may not
+          type: array
+          items:
+            $ref: "#/components/schemas/LinkChannel"
+      required:
+        - source_track
+        - bus
+        - channels
+    LinkWithId:
+      allOf:
+        - $ref: "#/components/schemas/Identified"
+        - $ref: "#/components/schemas/Link"
+    Region:
+      description: A region of the timeline (expressed in samples referenced to the mixer sample rate)
+      type: object
+      properties:
+        start:
+          type: integer
+        length:
+          type: integer
+      required:
+        - start
+        - length
+    PlayRegion:
+      description: A region of audio meant for playback (including wheter or not to loop)
+      allOf:
+        - type: object
+          properties:
+            loop:
+              type: boolean
+          required:
+            - loop
+        - $ref: "#/components/schemas/Region"
+    ValueMap:
+      description: key-value map where values are always numeric
+      type: object
+      additionalProperties:
+        type: number
+    TimedValueMap:
+      description: key-value map where values are always even-length arrays containing time stamps and values
+      type: object
+      additionalProperties:
+        description: clock reference followed by meter value, repeated for each metering sample
+        type: array
+        items:
+          type: number
+    Settings:
+      type: object
+      description: Settings of instance or bus inserts containing value maps from parameter to parameter value
+      properties:
+        instances:
+          type: object
+          description: For each instance,
+          additionalProperties:
+            $ref: "#/components/schemas/ValueMap"
+        bus_inserts:
+          type: object
+          description: For exach bus_id.insert_id
+          additionalProperties:
+            $ref: "#/components/schemas/ValueMap"
+    Play:
+      description: Information required to put the mixer into play mode
+      type: object
+      properties:
+        play_region:
+          description: What region should be played and if it should be looped. If omitted, assume playing from zero to the last clip track's clip with no looping
+          $ref: "#/components/schemas/PlayRegion"
+        format:
+          description: Output format
+          $ref: "#/components/schemas/OutputFormat"
+        delivery:
+          description: How to deliver the result
+          $ref: "#/components/schemas/Delivery"
+        sample_rate:
+          description: Sample rate used for the delivery. If omitted, use the native sample rate of the Mixer
+          type: integer
+        bus_id:
+          description: Which bus should be used as a source of the delivery
+          type: string
+      required:
+        - format
+        - delivery
+        - bus_id
+    Delivery:
+      description: How to deliver the playing output of the mixer
+      oneOf:
+        - $ref: "#/components/schemas/LocalDelivery"
+        - $ref: "#/components/schemas/ObjectDelivery"
+        - $ref: "#/components/schemas/StreamDelivery"
+      discriminator:
+        propertyName: type
+        mapping:
+          local: "#/components/schemas/LocalDelivery"
+          object: "#/components/schemas/ObjectDelivery"
+          stream: "#/components/schemas/StreamDelivery"
+    LocalDelivery:
+      description: Deliver the mixer output as a local file (useful for debugging)
+      type: object
+      properties:
+        local:
+          type: string
+      required: [local]
+    ObjectDelivery:
+      description: Deliver the mixer output as an object in S3 compatible object storage
+      example:
+        endpoint_or_id: "@sharedstorage"
+        bucket: "user2638"
+        object_id: "projects/untitled/render.wav"
+      type: object
+      properties:
+        endpoint_or_id:
+          description: S3 compatible endpoint URL or a `@` prefixed id for predefined storage
+          type: string
+        bucket:
+          description: S3 Bucket
+          type: string
+        object_id:
+          description: S3 Object ID (can be a path)
+          type: string
+        access_key:
+          description: S3 Access key, if needed
+          type: string
+        secret_key:
+          description: S3 Secret key, if needed
+          type: string
+      required:
+        - endpoint_or_id
+        - bucket
+        - object_id
+    StreamDelivery:
+      description: Deliver a stream of audio that can be downloaded in real-time while the mixer is playing
+      type: object
+      properties:
+        stream:
+          description: Stream ID
+          type: string
+      required:
+        - stream
+    Event:
+      description: An event from the mixer - including errors and exceptions
+      oneOf:
+        - $ref: "#/components/schemas/MixerStatusChanged"
+        - $ref: "#/components/schemas/MeteringUpdate"
+        - $ref: "#/components/schemas/Error"
+      discriminator:
+        propertyName: type
+        mapping:
+          mixer_status_changed: "#/components/schemas/MixerStatusChanged"
+          metering_update: "#/components/schemas/MeteringUpdate"
+          error: "#/components/schemas/Error"
+    MixerStatusChanged:
+      description: The mixer is changing its play status
+      type: object
+      properties:
+        old_status:
+          $ref: "#/components/schemas/MixerStatus"
+        status:
+          $ref: "#/components/schemas/MixerStatus"
+      required:
+        - old_status
+        - status
+    MeteringUpdate:
+      description: Inserts and Instances generated new metering information
+      type: object
+      properties:
+        instances:
+          type: object
+          description: For each instance, streaming clock referenced metering updates
+          additionalProperties:
+            $ref: "#/components/schemas/TimedValueMap"
+        bus_inserts:
+          type: object
+          description: For exach bus_id.insert_id, streaming clock referenced metering updates
+          additionalProperties:
+            $ref: "#/components/schemas/TimedValueMap"
+      required:
+        - instances
+        - bus_inserts
+    Error:
+      description: An error occured
+      type: object
+      properties:
+        error_code:
+          type: string
+        message:
+          type: string
+      required:
+        - error_code
+        - message
+    AuthRule:
+      description: A rule that binds an authorization header to permissions. This enables the application that has full access to the mixer to delegate limited access to another ad-hoc API consumer.
+      type: object
+      properties:
+        header:
+          description: Authorization header to match. Case and white-space sensitive.
+          example: "Bearer secret-key-13498713984719384710938/09183059713"
+          type: string
+        scopes:
+          type: array
+          example: ["stream:read", "stream:write"]
+          items:
+            type: string
+            enum:
+              - stream:read
+              - stream:write
+              - settings:read
+              - settings:write
+              - mixer:read
+              - mixer:write
+              - mixer:admin
+      required:
+        - header
+        - scopes
