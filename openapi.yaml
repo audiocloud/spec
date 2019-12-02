@@ -616,6 +616,16 @@ paths:
   /mixer/{mixer_id}/models:
     get:
       summary: Get all models supported
+      operationId: get_models
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Model"
 components:
   schemas:
     Identified:
@@ -1212,3 +1222,166 @@ components:
       required:
         - header
         - scopes
+    Model:
+      description: A model of a device, either virtual or physical
+      type: object
+      properties:
+        id:
+          type: string
+          example: "distopik/precisionlimiter"
+        version:
+          type: string
+          example: "1.0"
+        parameters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Parameter"
+        reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/Report"
+      required:
+        - id
+        - version
+    Parameter:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "threshold"
+        constraint:
+          $ref: "#/components/schemas/VariantConstraint"
+        unit:
+          $ref: "#/components/schemas/Unit"
+        role:
+          $ref: "#/components/schemas/Role"
+        channel:
+          $ref: "#/components/schemas/Channel"
+        linking:
+          $ref: "#/components/schemas/Linking"
+        archetype:
+          $ref: "#/components/schemas/Archetype"
+      required:
+        - id
+        - constraint
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          example: gain_reduction
+        constraint:
+          $ref: "#/components/schemas/VariantConstraint"
+        unit:
+          $ref: "#/components/schemas/Unit"
+        channel:
+          $ref: "#/components/schemas/Channel"
+        archetype:
+          $ref: "#/components/schemas/Archetype"
+    VariantConstraint:
+      example:
+        type: float
+        max: 1.0
+        default: 0.5
+      oneOf:
+        - $ref: "#/components/schemas/FloatConstraint"
+        - $ref: "#/components/schemas/IntConstraint"
+        - $ref: "#/components/schemas/BoolConstraint"
+        - $ref: "#/components/schemas/StringConstraint"
+      discriminator:
+        propertyName: type
+        mapping:
+          float: "#/components/schemas/FloatConstraint"
+          int: "#/components/schemas/IntConstraint"
+          bool: "#/components/schemas/BoolConstraint"
+          string: "#/components/schemas/StringConstraint"
+    FloatConstraint:
+      type: object
+      properties:
+        min:
+          type: number
+        max:
+          type: number
+        default:
+          type: number
+    IntConstraints:
+      type: object
+      properties:
+        min:
+          type: integer
+        max:
+          type: integer
+        default:
+          type: integer
+        step:
+          type: integer
+        list:
+          type: array
+          items:
+            type: integer
+    BoolConstraint:
+      type: object
+      properties:
+        default:
+          type: boolean
+    StringConstraint:
+      type: object
+      properties:
+        default:
+          type: string
+        list:
+          type: array
+          items:
+            type: string
+    Unit:
+      type: string
+      enum:
+        - dBFS
+        - dBu
+        - dBV
+        - LeftRight
+        - Hz
+    Role:
+      type: string
+      enum:
+        - enable
+        - gain
+        - center_frequency
+        - cutoff_frequency
+        - quality
+        - pan
+        - filter_type
+    Channel:
+      type: string
+      enum:
+        - left
+        - right
+        - left_and_right
+        - mid
+        - side
+        - mid_and_side
+        - global
+    Archetype:
+      type: string
+      enum:
+        - equalizer
+        - compressor
+        - limiter
+        - gate
+        - preamp
+        - bus_amp
+        - oscillator
+        - filter
+    Linking:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+          enum:
+            - follow
+            - enable
+      required:
+        - id
+        - action
