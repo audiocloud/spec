@@ -600,7 +600,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Settings"
-    post:
+    patch:
       summary: Update all or part of the settings of any instances and bus inserts
       operationId: update_settings
       requestBody:
@@ -616,6 +616,7 @@ paths:
               schema:
                 description: Number of settings changed
                 type: number
+                example: 2
   /models:
     get:
       summary: Get all models supported by the endpoint
@@ -631,7 +632,7 @@ paths:
                   $ref: "#/components/schemas/Model"
   /instances:
     get:
-      summary: Get all instances supported by the endpoint
+      summary: Get all instances owned by the endpoint
       operationId: get_instances
       responses:
         200:
