@@ -182,7 +182,7 @@ paths:
             application/json:
               schema:
                 type: integer
-  /mixers/{mixer_id}/instances:
+  /mixers/{mixer_id}/instance_ids:
     parameters:
       - name: mixer_id
         description: Mixer ID
@@ -192,14 +192,17 @@ paths:
           type: string
     put:
       summary: Set instance IDs controlled by Mixer
-      operationId: set_instances
+      operationId: set_instance_ids
       requestBody:
         description: Instance IDs controlled by the Mixer
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties:
+              example:
+                - distopik/precisionlimiter/3
+                - distopik/precisioneq/0
+              type: array
+              items:
                 type: string
       responses:
         200:
@@ -613,9 +616,9 @@ paths:
               schema:
                 description: Number of settings changed
                 type: number
-  /mixer/{mixer_id}/models:
+  /models:
     get:
-      summary: Get all models supported
+      summary: Get all models supported by the endpoint
       operationId: get_models
       responses:
         200:
@@ -626,6 +629,19 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Model"
+  /instances:
+    get:
+      summary: Get all instances supported by the endpoint
+      operationId: get_instances
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Instance"
 components:
   schemas:
     Identified:
@@ -678,10 +694,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AuthRule"
-        instances:
+        instance_ids:
+          example:
+            - distopik/precisionlimiter/3
+            - distopik/precisioneq/0
           description: Instance IDs associated with the operations on this mixer, for example, external hardware
-          type: object
-          additionalProperties:
+          type: array
+          items:
             type: string
       required:
         - sample_rate
@@ -1061,14 +1080,24 @@ components:
       properties:
         instances:
           type: object
-          description: For each instance,
+          description: Values for each instance
+          example:
+            distopik/precisioneq0:
+              leftLfGain: 5.71
+              leftLfShape: 3
           additionalProperties:
             $ref: "#/components/schemas/ValueMap"
         bus_inserts:
+          example:
+            output_bus:
+              1:
+                threshold: -5.528
           type: object
-          description: For exach bus_id.insert_id
+          description: For exach bus_id and each insert
           additionalProperties:
-            $ref: "#/components/schemas/ValueMap"
+            type: object
+            additionalProperties:
+              $ref: "#/components/schemas/ValueMap"
     Play:
       description: Information required to put the mixer into play mode
       type: object
@@ -1192,8 +1221,10 @@ components:
       type: object
       properties:
         error_code:
+          description: Error code, intended for machine consumption
           type: string
         message:
+          description: Error message, intended for human (operator) consumption
           type: string
       required:
         - error_code
@@ -1245,6 +1276,7 @@ components:
         - version
     Parameter:
       type: object
+      description: parameters that can be set by the operator or algorithm to influence the processing. For example, the gain of an equalizer band in dBu or the panning percentage between left and right.
       properties:
         id:
           type: string
@@ -1265,11 +1297,21 @@ components:
         - id
         - constraint
     Report:
+      description: summary values generated during operation that can be inspected by the operator or algorithm to make decisions. For example, is the unit clipping (true/false) or the gain reduction of the left channel in dBu.
       type: object
+      example:
+        id: gain_reduction_left
+        constraint:
+          type: float
+          min: -30
+          max: 0
+        unit: dBu
+        channel: left
+        archetype: limiter
+        role: gain_reduction
       properties:
         id:
           type: string
-          example: gain_reduction
         constraint:
           $ref: "#/components/schemas/VariantConstraint"
         unit:
@@ -1278,11 +1320,15 @@ components:
           $ref: "#/components/schemas/Channel"
         archetype:
           $ref: "#/components/schemas/Archetype"
+        role:
+          $ref: "#/components/schemas/ReportRole"
     VariantConstraint:
+      description: min/max/default/allowed values of parameters and reports as well as their underlying representative type (float, integer, bool, string)
       example:
         type: float
-        max: 1.0
-        default: 0.5
+        min: -30.0
+        max: +4
+        default: 0.0
       oneOf:
         - $ref: "#/components/schemas/FloatConstraint"
         - $ref: "#/components/schemas/IntConstraint"
@@ -1296,6 +1342,7 @@ components:
           bool: "#/components/schemas/BoolConstraint"
           string: "#/components/schemas/StringConstraint"
     FloatConstraint:
+      description: floating point interval
       type: object
       properties:
         min:
@@ -1304,8 +1351,9 @@ components:
           type: number
         default:
           type: number
-    IntConstraints:
+    IntConstraint:
       type: object
+      description: integer interval or list of valid integers
       properties:
         min:
           type: integer
@@ -1320,11 +1368,13 @@ components:
           items:
             type: integer
     BoolConstraint:
+      description: boolean value, true or false
       type: object
       properties:
         default:
           type: boolean
     StringConstraint:
+      description: list of valid strings
       type: object
       properties:
         default:
@@ -1335,6 +1385,8 @@ components:
             type: string
     Unit:
       type: string
+      example: dBu
+      description: Physical unit of the parameter or report value
       enum:
         - dBFS
         - dBu
@@ -1343,6 +1395,8 @@ components:
         - Hz
     Role:
       type: string
+      example: threshold
+      description: The role of the parameter within the instance
       enum:
         - enable
         - gain
@@ -1351,18 +1405,35 @@ components:
         - quality
         - pan
         - filter_type
+        - threshold
+        - ratio
+    ReportRole:
+      type: string
+      example: gain_reduction
+      description: The role of the report within the instance
+      enum:
+        - volume
+        - clipping
+        - trigger
+        - gain_reduction
     Channel:
       type: string
+      example: left_and_right
+      description: Which channels are influenced by the parameter. A global control works on the whole instance, not just the channels. 
       enum:
         - left
         - right
         - left_and_right
+        - left_or_mid
+        - right_or_side
         - mid
         - side
         - mid_and_side
         - global
     Archetype:
       type: string
+      example: limiter
+      description: Processing archetype that corresponds to this parameter. There are devices, like channel strips, that have multiple processing archetypes, so this is specified per parameter. The motivation is that similar parameters / presets (with the same role and same archetype) can be applied to instances with different models.
       enum:
         - equalizer
         - compressor
@@ -1374,14 +1445,37 @@ components:
         - filter
     Linking:
       type: object
+      description: When there is more than one control of the same type available on the device and they can be linked, this sets up links and rules for linking between them
       properties:
-        id:
+        link_id:
           type: string
+          example: threshold_link
+          description: The identifier that a parameter follows and/or influences, depending on the action
         action:
           type: string
+          description: How to interact with the link. `Follow` reads the link when it changes, but otherwise does not influence it. `Push_and_follow` reads the link when it changes and changing the parameter changes the link. `Link_and_unlink` enables or disables linking based on the parameter, for example `true` enables linking and `false` disables it.
+          example: push_and_follow
           enum:
             - follow
-            - enable
+            - push_and_follow
+            - link_and_unlink
       required:
         - id
         - action
+    Instance:
+      type: object
+      properties:
+        id:
+          type: string
+          example: distopik/precisionlimiter/3
+        model_id:
+          type: string
+          example: distopik/precisionlimiter
+          description: The id of the model of this instance
+        enabled:
+          type: boolean
+          description: When true, the instance is generally available
+        available:
+          type: boolean
+          description: When true, the instance is not taken by any other mixer at this time and can be claimed
+      required: [id, model_id, enabled, available]
